@@ -14,23 +14,33 @@ logger = logging.getLogger(__name__)
 # Bot configuration
 BOT_TOKEN = os.environ.get('BOT_TOKEN', "8582239371:AAHWHQCkkDfwAtdV6wVOlCJv17rAZBMpycI")
 
+# User ID that is allowed to send media (will not be deleted)
+ALLOWED_USER_ID = 7907871597
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Send a message when the command /start is issued."""
     await update.message.reply_text(
         "🤖 Bot is active!\n"
-        "I will automatically delete all media messages including photos, videos, stickers, GIFs, and audio."
+        "I will automatically delete all media messages including photos, videos, stickers, GIFs, and audio. I am desgin by @kingXkingz.\n"
+        f"Except for user ID: {ALLOWED_USER_ID}"
     )
 
 async def delete_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Delete any media message instantly."""
+    """Delete any media message instantly, except for allowed user."""
     try:
         message = update.message
+        user_id = message.from_user.id
         chat_id = message.chat_id
         message_id = message.message_id
         
-        # Delete the media message
+        # Check if user is the allowed user
+        if user_id == ALLOWED_USER_ID:
+            logger.info(f"Allowed user {user_id} sent media - not deleting")
+            return
+        
+        # Delete the media message for all other users
         await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
-        logger.info(f"Deleted media message {message_id} from chat {chat_id}")
+        logger.info(f"Deleted media message {message_id} from user {user_id} in chat {chat_id}")
         
         # Optional: Send a warning message (you can remove this if you don't want it)
         try:
@@ -68,8 +78,9 @@ def main():
     # Add error handler
     application.add_error_handler(error_handler)
 
-    # Start the Bot using polling (simpler for Heroku)
+    # Start the Bot using polling
     logger.info("Starting bot with polling...")
+    logger.info(f"Media deletion disabled for user ID: {ALLOWED_USER_ID}")
     application.run_polling()
 
 if __name__ == '__main__':
